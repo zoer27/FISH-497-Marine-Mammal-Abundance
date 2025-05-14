@@ -52,6 +52,12 @@ geom_point(aes(x = Sepal.Length, Sepal.Width), color = "blue")
 This document will not save the code you write automatically (though you can always come back to the original form of the document) so if you'd like to keep any of the code you create in the code blocks, I recommend saving it to a text file or R script.
 :::
 
+Some of the code blocks will also just have blank spaces in for you to fill out. The code in these blocks will not work until you fill it out.
+
+```{webr}
+1+ ___
+```
+
 ## How do we count wildlife populations?
 
 ::: callout-important
@@ -254,15 +260,14 @@ print(paste(length(p1), "individuals detected"))
 ```
 
 ```{webr}
-#| edit: false
-n<-24
-a<-5*30*10
-A<-3000
-N_hat<-(n*A)/a
+n<-____
+a<-____
+A<-____
+N_hat<-____
 print(N_hat)
 ```
 
-In this case, our estimate is 48 individuals, which is much closer to the truth of 50.
+Your new estimate should be about 48 individuals, which is much closer to the truth of 50.
 
 ::: callout-important
 ## Discuss
