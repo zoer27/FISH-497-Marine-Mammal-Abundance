@@ -1,0 +1,639 @@
+---
+title: "Estimating Marine Mammal Abundance"
+author: "Zoe Rand"
+format: 
+  live-html:
+    toc: true
+    embed-resources: true
+engine: knitr
+editor: visual
+webr:
+  packages:
+    - tidyverse
+    - Distance
+    - sf
+  resources:
+    - data
+---
+
+{{< include ./_extensions/r-wasm/live/_knitr.qmd >}}
+
+## Using this document
+
+This is a Quarto Live document which allows you to edit and run R code without opening a program on your own computer.
+
+::: callout-note
+It may take a few minutes to load the packages, so don't worry if things don't work right away.
+:::
+
+You will see code blocks like these throughout the document. Some of them will just have code in them for you to see:
+
+```{webr}
+#| edit: false
+
+ggplot(iris) + geom_point(aes(x = Sepal.Length, Sepal.Width), color = "blue")
+```
+
+However, some of these code blocks will be interactive. In these, you can edit or write new code and it will change the output. To see the results of your edits, press the "run code" button. Don't like the edits you made? Click "start over" and it will revert to the original version.
+
+Try:\
+1) Changing the color of the points in this plot
+
+2\) Change the independent variable. Some other options are: "Petal.Length", "Petal.Width", and "Species"
+
+3\) Add a plot element of your choice, like axis labels, a geom_smooth, facet the plot by "Species" etc.
+
+```{webr}
+ggplot(iris) + 
+geom_point(aes(x = Sepal.Length, Sepal.Width), color = "blue")
+```
+
+::: callout-note
+This document will not save the code you write automatically (though you can always come back to the original form of the document) so if you'd like to keep any of the code you create in the code blocks, I recommend saving it to a text file or R script.
+:::
+
+## How do we count wildlife populations?
+
+::: callout-important
+## Discuss:
+
+Why is it important to count wildlife populations? What kind of information can we learn from this?
+
+What might be particularly tricky about counting marine mammals?
+:::
+
+### 1) Census
+
+Just like a US government census, in a wildlife census you attempt to count every single individual in the study area. This may be possible in very specific circumstances, such as when the population is small, individuals are easy to see and count, or when the population is confined to a specific area.
+
+For these examples, the following plot will represent our study area. The black points are each individual animals in the study area.
+
+```{webr}
+#| echo: false
+set.seed(123)
+x<-runif(50, min = 1, max = 100)
+y <- runif(50, min = 1, max = 30)
+
+ggplot() + geom_point(aes(x = x, y = y)) + theme_classic() + 
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(), 
+        axis.ticks = element_blank())
+
+```
+
+The red points represent animals that have been counted using a census method.
+
+```{webr}
+#| echo: false
+x<-runif(50, min = 1, max = 100)
+y <- runif(50, min = 1, max = 30)
+
+ggplot() + geom_point(aes(x = x, y = y), color = "red") + theme_classic() + theme(axis.title = element_blank(),
+        axis.text = element_blank(), 
+        axis.ticks = element_blank())
+
+```
+
+Once you have done a census, you don't need to do any additional calculation. You will find out that there are exactly 50 animals in our study area, and you will be done.
+
+::: callout-important
+## Discuss
+
+What makes a census challenging to do for marine mammals?
+
+Are there any situations in which a census would be a reasonable way to get the abundance of a marine mammal population?
+:::
+
+## 2) Counts within equal sampling units
+
+If you can't count every individual in a particular study area, you might want to split the study area into sections and count the animals that occur in those sections, and then get the total number from the counts of the smaller sections. In these cases, it's often simplest to get results from sampling units that are the same size and shape across the study area.
+
+First we need to divide our study area into equal areas. Our example study area is 100m wide by 30 m long. Let's split it up into 20 equal rectangles, each 5m wide by 30m long.
+
+```{webr}
+#| echo: false
+set.seed(123)
+x<-runif(50, min = 1, max = 100)
+y <- runif(50, min = 1, max = 30)
+
+#set up rectangles
+rect<-tibble(ymin = 1, ymax = 30, xmin = seq(0,95, by = 5), xmax = seq(0,95, by = 5) + 5, label = seq(1,20, by = 1)) %>% mutate(label_pos = xmin + (xmax-xmin)/2)
+
+ggplot() + 
+  geom_rect(data = rect, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax), fill = NA, color = "black") + 
+  geom_point(aes(x = x, y = y), color = "black") + 
+  geom_text(data = rect, aes(x = label_pos, y = 15, label = label), color = "blue") + 
+  scale_y_continuous(breaks = seq(1,30, by = 2), expand = c(0,0)) + 
+  scale_x_continuous(breaks = seq(1,100, by = 2),expand = c(0,0)) + 
+  theme_classic() +
+  theme(axis.title = element_blank())
+
+#plts<-vector()
+```
+
+Now, let's randomly select plots to survey.
+
+First, we use `set.seed()` to make sure that we randomly generate the same numbers every time. This also ensures you will get the same result as your neighbor.
+
+Then, we use `sample()` to randomly pick plot numbers for us. The first argument tells it what to sample from (a sequence of numbers from 1:20), then the second argument tells it how many to pick. `replace = FALSE` means that it won't pick plots more than once. I told it to pick 5 plots for us. `print()` allows us to see the plots that it picked.
+
+```{webr}
+#| autorun: true
+#| edit: false
+set.seed(123)
+plts<-sample(seq(1,20, by =1), 5, replace = FALSE)
+print(plts)
+```
+
+Here are the plots we picked (shaded bars). The red points indicate the individuals we counted in each of our sampled plots. We have 15 red points, so we detected 15 individuals.
+
+```{webr}
+#| echo: false
+#print(plts)
+samples_tib<-tibble(ymin = 1, ymax = 30, xmin = seq(0,95, by = 5)[plts], xmax = (seq(0,95, by = 5) + 5)[plts])
+p1<-0
+for(i in 1:nrow(samples_tib)){
+  p<-which(between(x, samples_tib$xmin[i], samples_tib$xmax[i]))
+  p1<-c(p1,p)
+}
+
+#p1
+
+sampled_plots<-ggplot() + 
+  geom_rect(data = samples_tib, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax), alpha = 0.5) + 
+  geom_point(aes(x = x, y = y), color = "black") + 
+  geom_point(aes(x = x[p1], y = y[p1]), color = "red") + 
+  scale_y_continuous(breaks = seq(1,30, by = 5), expand = c(0,0)) + 
+  scale_x_continuous(breaks = seq(1,100, by = 2),expand = c(0,0)) + 
+  theme_classic() +
+  theme(axis.title = element_blank())
+sampled_plots
+
+print(paste(length(p1), "individuals detected"))
+  
+```
+
+How do we know how many total animals there are from our count of 15?
+
+::: callout-tip
+## Math
+
+Let's say that $A$ is the size of our study region. In this case:
+
+$$
+A = 100m * 30m = 3000 m^2
+$$
+
+$D$ indicates the density of our species, and $N$ represents the abunadnace,
+
+therefore:
+
+$$
+N = D*A
+$$
+
+$n$ is the number of individuals we detected in our sample, and $a$ is the size of our sampled area:
+
+$$
+n = 15 
+$$
+
+$$
+a = 5m * 30m * 5 \ plots = 750 m^2
+$$
+
+Our estimated density $\hat{D}$ (the \^ means this is an estimated value) is then:
+
+$$
+\hat{D} = n/a
+$$
+
+Therefore, our estimated abundance is then:
+
+$$
+\hat{N} = \hat{D}*A = \frac{nA}{a} = \frac{15\ individuals*3000m^2}{750m^2} = 60 \ individuals
+$$
+:::
+
+We have 50 individuals in our study area, and after surveying 5 plots, we estimated that there were 60 individuals. Remember, this is an estimate, so we expect that it will not be perfect.
+
+If your population is randomly distributed, the more plots you sample, the closer to the truth out estimate will come. For example, here's an estimate with 10 plots instead of 5.
+
+```{webr}
+#| autorun: true
+#| edit: false
+set.seed(445)
+plts<-sample(seq(1,20, by =1), 10, replace = FALSE)
+print(plts)
+```
+
+```{webr}
+#| echo: false
+#print(plts)
+samples_tib<-tibble(ymin = 1, ymax = 30, xmin = seq(0,95, by = 5)[plts], xmax = (seq(0,95, by = 5) + 5)[plts])
+p1<-0
+for(i in 1:nrow(samples_tib)){
+  p<-which(between(x, samples_tib$xmin[i], samples_tib$xmax[i]))
+  p1<-c(p1,p)
+}
+
+#p1
+
+sampled_plots<-ggplot() + 
+  geom_rect(data = samples_tib, aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax), alpha = 0.5) + 
+  geom_point(aes(x = x, y = y), color = "black") + 
+  geom_point(aes(x = x[p1], y = y[p1]), color = "red") + 
+  scale_y_continuous(breaks = seq(1,30, by = 5), expand = c(0,0)) + 
+  scale_x_continuous(breaks = seq(1,100, by = 2),expand = c(0,0)) + 
+  theme_classic() +
+  theme(axis.title = element_blank())
+sampled_plots
+
+print(paste(length(p1), "individuals detected"))
+  
+```
+
+```{webr}
+#| edit: false
+n<-24
+a<-5*30*10
+A<-3000
+N_hat<-(n*A)/a
+print(N_hat)
+```
+
+In this case, our estimate is 48 individuals, which is much closer to the truth of 50.
+
+::: callout-important
+## Discuss
+
+What are some challenges with this method?
+
+Would this method work well in an aquatic environment? Why/Why not?
+:::
+
+## 3) Distance Sampling
+
+What if we aren't able to see each individual? How do we account for animals that move around?
+
+The term *distance sampling* refers to a collection of methods that deal with these questions. They usually come in the form of *line transect sampling* or *point transect sampling*. As line transects are most frequently used in marine mammal abundance estimation, we will focus on that method today.
+
+### How does line transect sampling work?
+
+For marine mammals, line transect surveys are often done from ships. These ships travel in a straight line. When an observer sees an animal, they record estimates the distance of the animal from the line. Usually, this is done by recording the distance between the observer and the animal $r$, as well as the sighting angle $\theta$ and then the perpendicuar distance is calculated by: $x = r \sin \theta$
+
+![From: Distance Sampling: Methods and Applications by Buckland et al. 2015](images/line_transect_trig.png){fig-align="center"}
+
+Usually, a "half-width" is predetermined, which is the distance from the line (on either side) after which an animal is no longer recorded if it is seen. This is usually designated as $w$. If the length of the line is $l$, then the sampled area is a rectangle with $a = 2wl$.
+
+::: callout-tip
+## Math
+
+If we can fully detect all animals within the track area, then our density estimate is very similar to the example above:
+
+$$
+\hat{D} = \frac{n}{a} = \frac{n}{2wl}
+$$
+
+Our estimated abundance is then:
+
+$$
+\hat{N} = \frac{nA}{2wL}
+$$
+:::
+
+### Detection Function
+
+What happens when we can't see every individual on the track?
+
+In traditional line-transect sampling, we assume that animals on the track line are always detected. If $x$ is our distance from the track line, then the probability that an animal on the track line ($x=0$) is detected, is equal to 1. We then assume that the ability to detect an animal decreases as it gets farther and father away from the track line. After the half-width ( $x = w$ ) we assume that an individual is not detected.
+
+::: callout-tip
+## Math
+
+Let $g(x)$ be our *detection function*. This is the probability an animal is detected at distance $x$ from the track line. Then:
+
+$$
+g(0) = 1
+$$
+
+$$
+ g(w) = 0
+$$
+
+$$
+\text{For } 0 < x < 1: 
+g(x) = f(x)
+$$
+
+where $f(x)$ is a decreasing function of x.
+:::
+
+When we sampled at the equal area plots above (method #2) we assumed that all animals in our plot were detected. Therefore, the probability of detection was 1 for all individuals inside of the plot. Since our line-transects are also rectangles, we can think of them like out plots above but where we don't sample all the animals.
+
+Our *expected proportion* of animals detected in the plots above was 1. But for line transect surveys, this is between 0 and 1 because we are not detecting all the individuals. This means that if we just use $2wl$ as the survey area, we are saying we sampled more area than we actually did.
+
+To get an estimate of the proportion of this area we actually sampled, we use the detection function. In the figure below, focus on the plot on the left. The curve represents our detection function ($g(x)$). The proportion of animals in the rectangle that are counted (which would be 1 if all animals were perfectly detected) is the area under the curve divided by the width.
+
+![From: Distance Sampling: Methods and Applications by Buckland et al. 2015](images/detection_function.png){fig-align="center"}
+
+::: callout-tip
+## Math
+
+$P_a$ is essentially the proportion of the rectangle made by the track that we actually sampled. We can think of $P_a$ as $\frac{\mu}{w}$ where $\mu$ is the area under $g(x)$ between 0 and $w$ which is:
+
+$$
+\int_{0}^{w} g(x)dx
+$$
+
+Therefore, if we have an estimate of this function, $\hat{g}(x)$, then we can get an estimate of the proportion sampled ($\hat{P_a}$).
+
+Thus, our density estimate becomes:
+
+$$
+\hat{D} = \frac{n}{2wl\hat{P_a}}
+$$
+:::
+
+We estimate g(x) by using a probability density function. I will not go into the details of this, but I will show you how we do it using the `Distance` package in R.
+
+### Estimating abundance in R
+
+For these examples we will use the [Distance package](https://distancesampling.org/Distance/index.html) in R.
+
+```{webr}
+#| edit: false
+library(Distance)
+```
+
+These examples are based on examples created by Eric Rexstad which can be found [here](https://distancesampling.org/Distance/articles/lines-distill.html).
+
+For the first example, we will be using simulated data from blue whales in the North Pacific. If you want to read more about real ship based line transect surveys for blue whales, check out [Branch 2007](https://open.uct.ac.za/server/api/core/bitstreams/85d1b960-b5e5-488f-9a6b-b543017b099c/content) and [Calambokidis and Barlow 2004.](https://onlinelibrary.wiley.com/doi/epdf/10.1111/j.1748-7692.2004.tb01141.x)
+
+This data was simulated using these example track lines off the coast of California, Oregon, and Washington.
+
+![Simulated transects for blue whale line transect data.](images/simulated_transects.png){fig-align="center"}
+
+Let's see what the data looks like.
+
+First we will read in our data file:
+
+```{webr}
+#| edit: false
+bw_dat<-read.csv("data/simulated_bw.csv")
+```
+
+Then we will take a look at it. Use the `head()` function to see what columns are in the data:
+
+```{webr}
+head(____)
+```
+
+Let's make a map of our detections. First we will read in a *shapefile* which has the simulated transects in it and a bounding box for our study region. Then we will plot these as our base.
+
+Add a line of code to this plot to plot our simulated blue whale detections. Hints: use our `bw_dat` data and try `geom_point()`.
+
+```{webr}
+tracklines<-read_sf("data/tracklines.shp")
+region<-read_sf("data/region.shp")
+ggplot()  + 
+  geom_sf(data = region, fill = "lightblue") +  
+  geom_sf(data = tracklines, color = "blue")
+
+```
+
+Let's also plot our detection distances as a histogram. This will give us a sense of what our detection function should look like.
+
+```{webr}
+ggplot() + geom_histogram(data = _____, aes(x = ___), bins = 10)
+```
+
+::: callout-important
+## Discuss
+
+What do you notice about our detection distances?
+:::
+
+We are going to use a conversion factor to make sure the units are correct in our results. We want density in square kilometers. Currently, our distances are reported in meters, the effort is reported in meters, and the area is reported in meters. We will use `convert_units` from the Distance package to create a conversion factor for us.
+
+```{webr}
+#| edit: false
+conversion.factor <- convert_units("meter", "meter", "meter")
+```
+
+Now we are going to use a simple detection function model. To do this, we use the `ds()` function in from the package `Distance`. This function requires that our data have a column called `distance`.
+
+We also have to tell it what we think the best detection function shape is. Some commonly used options are:
+
+1\) A half-normal detection function:
+
+$$
+g(d)=g_0​exp(\frac{−d^2​}{2σ^2}) 
+$$
+
+This is abbreviated as `"hn"` in the model code.
+
+An example half-normal looks like this. (Note that the scale and exact shape of the curve will depend on what parameters are selected for $g_0$ and $\sigma$.)
+
+```{webr}
+#| echo: false
+d<-seq(1:200)
+sigma <- 50
+g<-exp((-d^2)/(2*sigma^2))
+ggplot() + geom_line(aes(x = d, y = g)) + 
+labs(x = "Distance", y = "Detection probability") + 
+theme_classic()
+```
+
+2\) A hazard-rate function:
+
+$$
+g(d)=g_0​[1−exp(−(d/σ​)^{−z})]
+$$
+
+This is abbreviated as `"hr"` in the model code.
+
+A hazard rate function looks like this. (Once again, the exact scale and shape will depend on parameters $g_0$, $\sigma$ and $z$.
+
+```{webr}
+#| echo: false
+d<-seq(1:200)
+sigma <- 130
+z<-10
+g<-(1-exp(-(d/sigma)^(-z)))
+ggplot() + geom_line(aes(x = d, y = g)) + 
+labs(x = "Distance", y = "Detection probability") + 
+theme_classic()
+
+```
+
+3\) Uniform
+
+$$
+g(d)=g_0​ for\ d<=σ;
+$$
+
+$$
+g(d)=0,otherwise
+$$
+
+This is abbreviated as `"unif"` in the model code.
+
+A uniform function looks like a flat line until you reach the value of $\sigma$.
+
+```{webr}
+#| echo: false
+d<-seq(1:200)
+sigma <- 150
+z<-0
+g<-c(rep(0.5, 150), rep(0, 50))
+ggplot() + geom_line(aes(x = d, y = g)) + 
+labs(x = "Distance", y = "Detection probability") + 
+theme_classic()
+```
+
+Pick one of these detection functions to use first (we'll use all 3 eventually). Fit a model using the `ds()` function.
+
+First, take a look at the help file to see what arguments you need.
+
+```{webr}
+#| autorun: true
+?ds()
+```
+
+Looks like we need our data. The model sets the truncation distance for you. We will also need to specify the "key" argument for our detection function. We will also need to specify our units using our `conversion.factor` from before. For this first model, we don't need any other arguments.
+
+Run your first model and print a summary of the results.
+
+```{webr}
+model1<-ds(____, key = ____, convert_units = conversion.factor)
+summary(____)
+```
+
+This summary has lots of useful information about our model.
+
+Some things that are useful to focus on:
+
+1\) `Average p` which is your average detection probability. Is it easy to see blue whales? Or difficult?
+
+2\) `N in covered region` which is the number of individuals in the region we surveyed. This accounts for the number of individuals we detected (`Number of Observations`) as well as the detection probability.
+
+3\) `Abundance` is our total abundance estimate for the survey region, as well as it's associated standard error and CV.
+
+4\) `Density` is abundance/area surveyed, it's the number of individuals per square kilometer (it's in these units because of the `conversion.factor` we specified earlier).
+
+Plot the detection function that was estimated:
+
+```{webr}
+plot(model1)
+```
+
+::: callout-important
+## Discuss
+
+How does your model fit your data?
+:::
+
+For this first model run, I told you to just pick a detection function. However, we can actually use information from the model to help us choose the best one.
+
+Fit 2 more models, each with a different detection function:
+
+```{webr}
+model2<-ds(____________)
+summary(model2)
+```
+
+```{webr}
+model3<-ds(_____________)
+summary(model3)
+```
+
+Plot these model fits as well:
+
+```{webr}
+plot(_____)
+```
+
+```{webr}
+plot(_____)
+```
+
+::: callout-important
+## Discuss
+
+How do these models compare to your first one? Looking at the plots, which one looks like the best fit?
+:::
+
+When choosing between models, we often use something called the Akaike Information Criterion (AIC). AIC measures the balance between fitting your data well and having too many parameters. You can learn more about AIC [here.](https://en.wikipedia.org/wiki/Akaike_information_criterion)
+
+We can use the AIC values estimated in each model fit to compare the fit of our models. The "best fitting" model is usually the one that has the lowest AIC value. However, a typical rule of thumb is that the difference in AIC values must be at least 2 for the models to be considered different from each other.
+
+```{webr}
+AIC(model1, model2, model3)
+```
+
+In addition to AIC, we also want to make sure our models actually fit the data. To do this, we use the `gof_ds()` function. Run this for each of your models:
+
+```{webr}
+gof_ds(_____)
+```
+
+```{webr}
+gof_ds(_____)
+```
+
+```{webr}
+gof_ds(_____)
+```
+
+::: callout-important
+## Discuss
+
+Which of these models is the "best fitting" according to AIC?
+
+Does this match with what you expected based on the plots you made?
+:::
+
+Since I simulated the data, I know that the "true" detection function is a half-normal. I also know that the "true" population size was 800 individuals.
+
+Let's make look at the confidence intervals for our abundance estimates for each model.
+
+```{webr}
+Abundance_1<-_____$dht$individuals$N$Estimate
+lcl_1<-___$dht$individuals$N$lcl
+ucl_1<-____$dht$individuals$N$ucl
+print(paste("Estimate:", Abundance_1))
+print(paste("95% Confidence:", lcl_1, "-", ucl_1))
+```
+
+```{webr}
+Abundance_2<-_____
+lcl_2<-______
+ucl_2<-______
+print(paste("Estimate:", Abundance_2))
+print(paste("95% Confidence:", lcl_2, "-", ucl_2))
+```
+
+```{webr}
+Abundance_3<-_____
+lcl_3<-______
+ucl_3<-______
+print(paste("Estimate:", Abundance_3))
+print(paste("95% Confidence:", lcl_3, "-", ucl_3))
+```
+
+::: callout-important
+## Discuss
+
+How well did our models do at returning the "truth"?
+
+Which model would you choose as your best model?
+:::
+
+### 
+
+## Resources:
+
+Buckland ST, Rexstad EA, Marques TA, Oedekoven CS (2015). *Distance Sampling: Methods and Applications.* Springer, New York.
+
+Miller DL, Rexstad E, Thomas L, Marshall L, Laake JL (2019). “Distance Sampling in R.” *Journal of Statistical Software*, **89**(1), 1–28. [doi:10.18637/jss.v089.i01](https://doi.org/10.18637/jss.v089.i01).
