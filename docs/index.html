@@ -26419,16 +26419,16 @@ window.Quarto = {
    
   <ul>
   <li><a href="#using-this-document" id="toc-using-this-document" class="nav-link active" data-scroll-target="#using-this-document">Using this document</a></li>
-  <li><a href="#how-do-we-count-wildlife-populations" id="toc-how-do-we-count-wildlife-populations" class="nav-link" data-scroll-target="#how-do-we-count-wildlife-populations">How do we count wildlife populations?</a>
-  <ul class="collapse">
+  <li><a href="#how-do-we-count-wildlife-populations" id="toc-how-do-we-count-wildlife-populations" class="nav-link" data-scroll-target="#how-do-we-count-wildlife-populations">How do we count wildlife populations?</a></li>
   <li><a href="#census" id="toc-census" class="nav-link" data-scroll-target="#census">1) Census</a></li>
-  </ul></li>
   <li><a href="#counts-within-equal-sampling-units" id="toc-counts-within-equal-sampling-units" class="nav-link" data-scroll-target="#counts-within-equal-sampling-units">2) Counts within equal sampling units</a></li>
   <li><a href="#distance-sampling" id="toc-distance-sampling" class="nav-link" data-scroll-target="#distance-sampling">3) Distance Sampling</a>
   <ul class="collapse">
   <li><a href="#how-does-line-transect-sampling-work" id="toc-how-does-line-transect-sampling-work" class="nav-link" data-scroll-target="#how-does-line-transect-sampling-work">How does line transect sampling work?</a></li>
   <li><a href="#detection-function" id="toc-detection-function" class="nav-link" data-scroll-target="#detection-function">Detection Function</a></li>
-  <li><a href="#estimating-abundance-in-r" id="toc-estimating-abundance-in-r" class="nav-link" data-scroll-target="#estimating-abundance-in-r">Estimating abundance in R</a></li>
+  </ul></li>
+  <li><a href="#estimating-abundance-in-r" id="toc-estimating-abundance-in-r" class="nav-link" data-scroll-target="#estimating-abundance-in-r">Estimating abundance in R</a>
+  <ul class="collapse">
   <li><a href="#section" id="toc-section" class="nav-link" data-scroll-target="#section"></a></li>
   </ul></li>
   <li><a href="#resources" id="toc-resources" class="nav-link" data-scroll-target="#resources">Resources:</a></li>
@@ -26534,8 +26534,9 @@ Discuss:
 <p>What might be particularly tricky about counting marine mammals?</p>
 </div>
 </div>
-<section id="census" class="level3">
-<h3 class="anchored" data-anchor-id="census">1) Census</h3>
+</section>
+<section id="census" class="level2">
+<h2 class="anchored" data-anchor-id="census">1) Census</h2>
 <p>Just like a US government census, in a wildlife census you attempt to count every single individual in the study area. This may be possible in very specific circumstances, such as when the population is small, individuals are easy to see and count, or when the population is confined to a specific area.</p>
 <p>For these examples, the following plot will represent our study area. The black points are each individual animals in the study area.</p>
 <div class="cell">
@@ -26574,7 +26575,6 @@ Discuss
 <p>Are there any situations in which a census would be a reasonable way to get the abundance of a marine mammal population?</p>
 </div>
 </div>
-</section>
 </section>
 <section id="counts-within-equal-sampling-units" class="level2">
 <h2 class="anchored" data-anchor-id="counts-within-equal-sampling-units">2) Counts within equal sampling units</h2>
@@ -26794,8 +26794,9 @@ Math
 </div>
 <p>We estimate g(x) by using a probability density function. I will not go into the details of this, but I will show you how we do it using the <code>Distance</code> package in R.</p>
 </section>
-<section id="estimating-abundance-in-r" class="level3">
-<h3 class="anchored" data-anchor-id="estimating-abundance-in-r">Estimating abundance in R</h3>
+</section>
+<section id="estimating-abundance-in-r" class="level2">
+<h2 class="anchored" data-anchor-id="estimating-abundance-in-r">Estimating abundance in R</h2>
 <p>For these examples we will use the <a href="https://distancesampling.org/Distance/index.html">Distance package</a> in R.</p>
 <div class="cell" data-edit="false">
 <div>
@@ -27152,7 +27153,6 @@ Discuss
 <p>Which model would you choose as your best model?</p>
 </div>
 </div>
-</section>
 <section id="section" class="level3">
 <h3 class="anchored" data-anchor-id="section"></h3>
 </section>

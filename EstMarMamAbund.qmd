@@ -62,7 +62,7 @@ Why is it important to count wildlife populations? What kind of information can 
 What might be particularly tricky about counting marine mammals?
 :::
 
-### 1) Census
+## 1) Census
 
 Just like a US government census, in a wildlife census you attempt to count every single individual in the study area. This may be possible in very specific circumstances, such as when the population is small, individuals are easy to see and count, or when the population is confined to a specific area.
 
@@ -357,7 +357,7 @@ $$
 
 We estimate g(x) by using a probability density function. I will not go into the details of this, but I will show you how we do it using the `Distance` package in R.
 
-### Estimating abundance in R
+## Estimating abundance in R
 
 For these examples we will use the [Distance package](https://distancesampling.org/Distance/index.html) in R.
 
