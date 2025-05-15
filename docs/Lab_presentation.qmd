@@ -1,0 +1,145 @@
+---
+title: "Estimating Marine Mammal Abundance"
+subtitle: "FISH 497"
+author: "Zoe Rand"
+format:
+  revealjs:
+    embed-resources: true
+    theme: solarized
+editor: visual
+---
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+library(tidyverse)
+library(sf)
+library(Distance)
+bw_dat<-read_csv("data/simulated_bw.csv")
+```
+
+## Getting started
+
+-   Install and load `tidyverse`, `sf` and `Distance` packages
+
+-   Unzip the `data` folder and place in your root directory
+
+## Instructions {.smaller}
+
+We will be using data from a simulated line-transect survey for blue whales off the coast of California, Oregon, and Washington.
+
+1\) Read in your data (`simulated_bw.csv`) and look at it. What kind of information is in each of the columns?
+
+2\) Plot the locations of each detection on top of the tracklines. You will need to read in the `tracklines.shp` and `region.shp` files using `read_sf()`. You can plot these using `geom_sf()`.
+
+3\) Make a histogram of your detection distances.
+
+4\) Run three distance sampling models using the `ds()` function in the `Distance` package. You will need to select a detection function for each model: half-normal = `"hn"`, hazard rate = `"hr"`, and uniform = `"unif"`. You will also need to set `convert_units = convert_units("meter", "meter", "meter")` inside of your function call. Look at the summary function for each model and plot the output.
+
+## Instructions part 2
+
+5\) Use `gof_ds()` to assess whether your model fits the data.
+
+6\) Compare the three models using `AIC()`. Which of these is the best model?
+
+7\) Extract your estimated abundance and 95% confidence intervals from each model. Do the confidence intervals contain our "true" estimate of 800 individuals?
+
+------------------------------------------------------------------------
+
+::: panel-tabset
+### Detections Figure
+
+```{r, echo = FALSE}
+tracklines<-read_sf("data/tracklines.shp")
+region<-read_sf("data/region.shp")
+ggplot()  + 
+  geom_sf(data = region, fill = "lightblue") +  
+  geom_sf(data = tracklines, color = "blue") + 
+  geom_point(data = bw_dat, aes(x = x, y = y))
+```
+
+### Code
+
+```{r, eval = FALSE, echo = TRUE}
+tracklines<-read_sf("data/tracklines.shp")
+region<-read_sf("data/region.shp")
+ggplot()  + 
+  geom_sf(data = region, fill = "lightblue") +  
+  geom_sf(data = tracklines, color = "blue") + 
+  geom_point(data = bw_dat, aes(x = x, y = y))
+```
+
+### Distances
+
+```{r, echo = FALSE}
+ggplot() + geom_histogram(data = bw_dat, aes(x = distance ), bins = 10)
+```
+
+### Code
+
+```{r, eval = FALSE, echo = TRUE}
+ggplot() + geom_histogram(data = bw_dat, aes(x = distance ), bins = 10)
+```
+:::
+
+------------------------------------------------------------------------
+
+## Detection Functions {.scrollable}
+
+
+### Half-normal
+
+`"hn`"
+
+```{r, echo = FALSE}
+d<-seq(1:200)
+sigma <- 50
+g<-exp((-d^2)/(2*sigma^2))
+ggplot() + geom_line(aes(x = d, y = g)) + 
+labs(x = "Distance", y = "Detection probability") + 
+theme_classic()
+
+```
+
+### Hazard rate
+
+`"hr"`
+
+```{r, echo = FALSE}
+d<-seq(1:200)
+sigma <- 130
+z<-10
+g<-(1-exp(-(d/sigma)^(-z)))
+ggplot() + geom_line(aes(x = d, y = g)) + 
+labs(x = "Distance", y = "Detection probability") + 
+theme_classic()
+```
+
+
+### Uniform
+
+`"unif"`
+
+```{r, echo = FALSE}
+d<-seq(1:200)
+sigma <- 150
+z<-0
+g<-c(rep(0.5, 150), rep(0, 50))
+ggplot() + geom_line(aes(x = d, y = g)) + 
+labs(x = "Distance", y = "Detection probability") + 
+theme_classic()
+```
+
+
+## Instructions part 2
+
+5\) Use `gof_ds()` to assess whether your model fits the data.
+
+6\) Compare the three models using `AIC()`. Which of these is the best model?
+
+7\) Extract your estimated abundance and 95% confidence intervals from each model. Do the confidence intervals contain our "true" estimate of 800 individuals?
+
+## Discussion
+Which model is the best model?
+
+. . .
+
+What might be some challenges with fitting this kind of model? How can we account for these?
