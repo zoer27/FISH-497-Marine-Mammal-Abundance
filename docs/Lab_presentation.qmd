@@ -22,6 +22,20 @@ bw_dat<-read_csv("data/simulated_bw.csv")
 
 -   Unzip the `data` folder and place in your root directory
 
+## Objective
+
+Today we will be estimating the total size of a population of blue whales using data from line-transect surveys.
+
+::::: columns
+::: {.column width="50%"}
+![](images/simulated_transects.png)
+:::
+
+::: {.column width="50%"}
+![Photo: Russell Leaper](images/Bluewhale_SouthGeorgia.jpg)
+:::
+:::::
+
 ## Instructions {.smaller}
 
 We will be using data from a simulated line-transect survey for blue whales off the coast of California, Oregon, and Washington.
@@ -84,7 +98,6 @@ ggplot() + geom_histogram(data = bw_dat, aes(x = distance ), bins = 10)
 
 ## Detection Functions {.scrollable}
 
-
 ### Half-normal
 
 `"hn`"
@@ -113,7 +126,6 @@ labs(x = "Distance", y = "Detection probability") +
 theme_classic()
 ```
 
-
 ### Uniform
 
 `"unif"`
@@ -128,7 +140,6 @@ labs(x = "Distance", y = "Detection probability") +
 theme_classic()
 ```
 
-
 ## Instructions part 2
 
 5\) Use `gof_ds()` to assess whether your model fits the data.
@@ -138,6 +149,7 @@ theme_classic()
 7\) Extract your estimated abundance and 95% confidence intervals from each model. Do the confidence intervals contain our "true" estimate of 800 individuals?
 
 ## Discussion
+
 Which model is the best model?
 
 . . .
